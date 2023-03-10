@@ -3,7 +3,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 
 module.exports = async (request: VercelRequest, response: VercelResponse) => {
-    console.log(JSON.stringify(request.headers))
     const options = {
         method: 'POST',
         headers: {
