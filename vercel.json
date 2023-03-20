@@ -1,0 +1,7 @@
+{
+    "functions": {
+        "api/gpt.ts": {
+            "maxDuration": 60
+        }
+    }
+}
