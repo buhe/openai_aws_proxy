@@ -1,46 +1,51 @@
 import https from 'https'
 
-export const handler = async (event, context) => {
-    const headers = event.headers;
-    const body = event.body;
-    const path = event.rawPath;
-    const httpMethod = event.requestContext.http.method;
-    console.log(`path: ${path}`)
-    console.log(`httpMethod: ${JSON.stringify(httpMethod)}`)
-    const options = {
-        method: httpMethod,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': headers['authorization']
-        },
-        port: 443,
-        hostname: 'api.openai.com',
-        path: path,
-    }
+export const handler = awslambda.streamifyResponse(
+    async (event, responseStream, _context) => {
+        const headers = event.headers;
+        const body = event.body;
+        const path = event.rawPath;
+        const httpMethod = event.requestContext.http.method;
+        console.log(`path: ${path}`)
+        console.log(`httpMethod: ${JSON.stringify(httpMethod)}`)
+        const options = {
+            method: httpMethod,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': headers['authorization']
+            },
+            port: 443,
+            hostname: 'api.openai.com',
+            path: path,
+        }
+        const metadata = {
+            statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+                "CustomHeader": "outerspace"
+            }
+        };
 
-    return new Promise((resolve, reject) => {
-        const req = https.request(options, (res) => {
-            let body = '';
-            res.on('data', (chunk) => {
-                body += chunk;
-            });
-            res.on('end', () => {
-                const response = {
-                    statusCode: res.statusCode,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: body
-                };
-                resolve(response);
-            });
-        });
+        // Assign to the responseStream parameter to prevent accidental reuse of the non-wrapped stream.
+        responseStream = awslambda.HttpResponseStream.from(responseStream, metadata);
 
-        req.on('error', (e) => {
-            console.error(`problem with request: ${e.message}`);
-            reject(e);
+        return new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                res.on('data', (chunk) => {
+                    responseStream.write(chunk)
+                });
+                res.on('end', () => {
+                    responseStream.end();
+                    responseStream.finished();
+                    resolve();
+                });
+            });
+
+            req.on('error', (e) => {
+                console.error(`problem with request: ${e.message}`);
+                reject(e);
+            });
+            req.write(body)
+            req.end();
         });
-        req.write(body)
-        req.end();
-    });
-};
+    })
