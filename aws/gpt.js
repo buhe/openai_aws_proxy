@@ -43,6 +43,8 @@ export const handler = awslambda.streamifyResponse(
 
             req.on('error', (e) => {
                 console.error(`problem with request: ${e.message}`);
+                responseStream.end();
+                responseStream.finished();
                 reject(e);
             });
             req.write(body)
