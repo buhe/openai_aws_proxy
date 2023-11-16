@@ -3,15 +3,19 @@ import https from 'https'
 export const handler = async (event, context) => {
     const headers = event.headers;
     const body = event.body;
+    const path = event.rawPath;
+    const httpMethod = event.requestContext.http.method;
+    console.log(`path: ${path}`)
+    console.log(`httpMethod: ${JSON.stringify(httpMethod)}`)
     const options = {
-        method: 'POST',
+        method: httpMethod,
         headers: {
             'Content-Type': 'application/json',
             'Authorization': headers['authorization']
         },
         port: 443,
         hostname: 'api.openai.com',
-        path: '/v1/chat/completions',
+        path: path,
     }
 
     return new Promise((resolve, reject) => {
